@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Procam Logistics — Load Planning Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/*
+ ╔══════════════════════════════════════════════════════════╗
+ ║  PROCAM BRAND SYSTEM — EXACT IDENTITY GUIDE             ║
+ ║  Red      #BC1D2F   primary accent   (10%)              ║
+ ║  DarkRed  #8E1523   hover states                        ║
+ ║  Black    #111111   headlines                           ║
+ ║  Charcoal #414242   nav, labels     (30%)               ║
+ ║  Grey     #666666   body copy                           ║
+ ║  Off-Wht  #F3F3F3   page bg         (60%)               ║
+ ║  White    #FFFFFF   cards, surfaces                     ║
+ ║  Font     Helvetica Neue / Helvetica / Arial            ║
+ ╚══════════════════════════════════════════════════════════╝
+*/
+:root{
+  --red:#BC1D2F; --red-dk:#8E1523; --red-lt:#FFF0F2; --red-mid:rgba(188,29,47,.08);
+  --black:#111111; --ch:#414242; --grey:#666666;
+  --off:#F3F3F3; --white:#FFFFFF; --light:#EBEBEB;
+  --border:#E0E0E0; --border2:#CCCCCC;
+  --green:#0a6640; --green-bg:#e6f4ed;
+  --amber:#7a4200; --amber-bg:#fff7e0;
+  --blue:#1a4080;  --blue-bg:#e6eeff;
+  --s1:0 1px 3px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.04);
+  --s2:0 2px 8px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06);
+  --sr:0 4px 18px rgba(188,29,47,.22);
+  --r:4px; --rl:8px; --rx:13px;
+  --f:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --fm:"SF Mono","Fira Code","Consolas",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:13.5px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--f);background:var(--off);color:var(--black);line-height:1.6}
+
+/* ─── LOGIN ───────────────────────────────────────────── */
+#login{position:fixed;inset:0;z-index:999;display:flex;transition:opacity .3s}
+#login.out{opacity:0;pointer-events:none}
+
+.lp{width:44%;background:var(--red);display:flex;flex-direction:column;
+    justify-content:space-between;padding:52px 50px 38px;overflow:hidden;position:relative}
+.lp::after{content:"»";position:absolute;right:-20px;top:50%;transform:translateY(-50%);
+           font-size:320px;font-weight:900;color:rgba(255,255,255,.05);line-height:1;
+           pointer-events:none;user-select:none}
+
+/* Logo in login — white knockout on red */
+.lp-logo img{height:48px;filter:brightness(0) invert(1);display:block}
+.lp-logo .lp-logo-fb{display:none;font-size:24px;font-weight:800;color:#fff;letter-spacing:.02em}
+.lp-logo .lp-logo-fb small{display:block;font-size:11px;font-weight:400;
+  opacity:.55;letter-spacing:.1em;text-transform:uppercase;margin-top:-1px}
+
+.lp-headline{font-size:40px;font-weight:800;color:#fff;line-height:1.1;
+             margin-top:32px;letter-spacing:-.5px}
+.lp-headline em{font-style:normal;color:rgba(255,255,255,.45);font-size:33px}
+.lp-sub{font-size:13.5px;color:rgba(255,255,255,.62);margin-top:10px;
+        line-height:1.72;max-width:320px}
+.lp-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:18px}
+.lp-tag{background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.2);
+        color:#fff;font-size:10px;font-weight:700;padding:3px 10px;
+        border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+.lp-foot{font-size:10px;color:rgba(255,255,255,.3);line-height:1.8}
+
+.lf-wrap{flex:1;background:var(--ch);display:flex;align-items:center;
+         justify-content:center;padding:40px}
+.lf{width:100%;max-width:370px}
+.lf h2{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-bottom:4px}
+.lf p{font-size:12.5px;color:rgba(255,255,255,.4);margin-bottom:26px}
+.lf-lbl{display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);
+        text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.lf-in{width:100%;padding:11px 13px;background:rgba(255,255,255,.07);
+       border:1.5px solid rgba(255,255,255,.15);border-radius:var(--r);
+       color:#fff;font-family:var(--f);font-size:14px;
+       transition:border .14s,background .14s;margin-bottom:14px}
+.lf-in:focus{outline:none;border-color:var(--red);background:rgba(255,255,255,.11)}
+.lf-in::placeholder{color:rgba(255,255,255,.24)}
+.lf-btn{width:100%;padding:12px;background:var(--red);border:none;
+        border-radius:var(--r);color:#fff;font-family:var(--f);
+        font-size:15px;font-weight:700;letter-spacing:.02em;
+        cursor:pointer;transition:all .16s;margin-top:3px}
+.lf-btn:hover{background:var(--red-dk);transform:translateY(-1px);box-shadow:var(--sr)}
+.lf-err{color:#ff9090;font-size:12px;margin-top:6px;display:none}
+.lf-ver{text-align:center;margin-top:20px;font-size:10px;color:rgba(255,255,255,.18)}
+
+/* ─── SHELL ───────────────────────────────────────────── */
+#app{display:none;grid-template-columns:248px 1fr;min-height:100vh}
+
+/* ─── SIDEBAR ─────────────────────────────────────────── */
+.sb{background:var(--ch);display:flex;flex-direction:column;
+    position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-top{padding:16px 15px 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+
+/* Logo in sidebar — white knockout on charcoal */
+.sb-logo img{height:32px;display:block;filter:brightness(0) invert(1);margin-bottom:12px}
+.sb-logo .sb-logo-fb{display:none;font-size:15px;font-weight:800;color:#fff;
+                     letter-spacing:.02em;margin-bottom:12px}
+.sb-logo .sb-logo-fb small{display:block;font-size:9px;font-weight:400;
+  opacity:.5;letter-spacing:.1em;text-transform:uppercase}
+
+.sb-user{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);
+         border-radius:var(--r);padding:7px 10px}
+.sb-av{width:27px;height:27px;border-radius:50%;background:var(--red);color:#fff;
+       font-weight:700;font-size:12px;display:flex;align-items:center;
+       justify-content:center;flex-shrink:0}
+.sb-un{font-size:12px;font-weight:600;color:#fff}
+.sb-ur{font-size:10px;color:rgba(255,255,255,.38);text-transform:capitalize}
+
+.sb-sec{padding:11px 14px 3px;font-size:9px;font-weight:700;
+        color:rgba(255,255,255,.28);letter-spacing:.12em;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:9px;padding:8px 15px;cursor:pointer;
+         color:rgba(255,255,255,.55);font-size:13px;font-weight:400;
+         border-left:3px solid transparent;transition:all .13s;user-select:none}
+.sb-link:hover{background:rgba(255,255,255,.05);color:#fff}
+.sb-link.on{background:rgba(188,29,47,.18);color:#fff;
+            border-left-color:var(--red);font-weight:600}
+.sb-link .ic{font-size:14px;width:17px;text-align:center;flex-shrink:0}
+.chip{margin-left:auto;font-size:9.5px;padding:1px 6px;
+      border-radius:10px;font-weight:700}
+.ch-r{background:var(--red);color:#fff}
+.ch-g{background:var(--green);color:#fff}
+.ch-a{background:var(--amber);color:#fff}
+
+.sb-kpi{margin:10px 13px 0;background:rgba(255,255,255,.05);
+        border:1px solid rgba(255,255,255,.07);border-radius:var(--r);
+        padding:9px 11px}
+.kk{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);
+    text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
+.kv{font-size:20px;font-weight:800;color:#fff;line-height:1}
+.ks{font-size:10px;color:rgba(255,255,255,.3)}
+.tbar{height:3px;background:rgba(255,255,255,.09);border-radius:2px;
+      overflow:hidden;margin:8px 13px 0}
+.tbar-f{height:100%;background:linear-gradient(90deg,var(--red),#f59e0b);
+        border-radius:2px;transition:width .5s}
+
+.sb-bot{margin-top:auto;padding:11px 14px;border-top:1px solid rgba(255,255,255,.05)}
+.sb-out{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.34);
+        font-size:12px;cursor:pointer;padding:4px 0;transition:color .13s}
+.sb-out:hover{color:rgba(255,255,255,.72)}
+
+/* ─── MAIN ────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);
+        padding:0 24px;height:52px;display:flex;align-items:center;
+        position:sticky;top:0;z-index:100;box-shadow:var(--s1)}
+.tb-bc{display:flex;align-items:center;gap:5px;font-size:13px}
+.tb-root{color:var(--grey)}
+.tb-sep{color:var(--border2);margin:0 1px}
+.tb-cur{color:var(--red);font-weight:700;font-size:14px;letter-spacing:.01em}
+.tb-right{margin-left:auto;display:flex;gap:7px}
+.content{padding:20px 24px;flex:1}
+.panel{display:none}.panel.on{display:block}
+
+/* ─── CARDS ───────────────────────────────────────────── */
+.card{background:var(--white);border:1px solid var(--border);
+      border-radius:var(--rl);padding:18px 22px;margin-bottom:14px;
+      box-shadow:var(--s1)}
+.card-r{border-top:3px solid var(--red)}
+.ct{font-size:12.5px;font-weight:700;color:var(--black);text-transform:uppercase;
+    letter-spacing:.06em;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.ct::before{content:"";width:3px;height:14px;background:var(--red);
+            border-radius:2px;flex-shrink:0}
+
+/* ─── FORMS ───────────────────────────────────────────── */
+.f4{display:grid;grid-template-columns:repeat(auto-fit,minmax(166px,1fr));
+    gap:10px;margin-bottom:10px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:10px;font-weight:700;color:var(--grey);
+    text-transform:uppercase;letter-spacing:.06em}
+.fl .req{color:var(--red)}
+input,select,textarea{font-family:var(--f);font-size:13.5px;padding:8px 11px;
+  border:1.5px solid var(--border);border-radius:var(--r);
+  background:var(--white);color:var(--black);width:100%;transition:border .14s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
+textarea{resize:vertical;font-family:var(--fm);font-size:11.5px;min-height:68px}
+
+/* ─── BUTTONS ─────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+     border:1.5px solid var(--border2);border-radius:var(--r);
+     font-family:var(--f);font-size:13px;font-weight:600;cursor:pointer;
+     background:var(--white);color:var(--black);transition:all .14s;white-space:nowrap}
+.btn:hover{background:var(--light)}
+.btn-r{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-r:hover{background:var(--red-dk);transform:translateY(-1px);box-shadow:var(--sr)}
+.btn-ch{background:var(--ch);color:#fff;border-color:var(--ch)}
+.btn-ch:hover{background:#2a2a2a}
+.btn-gn{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-gn:hover{opacity:.88}
+.btn-ot{background:transparent;border-color:var(--red);color:var(--red)}
+.btn-ot:hover{background:var(--red-lt)}
+.btn-full{width:100%;justify-content:center;padding:12px}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+.bg{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+
+/* ─── BADGES ──────────────────────────────────────────── */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;
+       font-size:10.5px;font-weight:700;white-space:nowrap}
+.b-hyd{background:#dbeafe;color:#1e3a8a}
+.b-50h{background:#d1fae5;color:#065f46}
+.b-40h{background:#a7f3d0;color:#047857}
+.b-slbt{background:#fef3c7;color:#92400e}
+.b-mech{background:#ede9fe;color:#5b21b6}
+.b-jcb{background:#fce7f3;color:#9d174d}
+.b-lpt{background:#ffe4e6;color:#9f1239}
+.b-odc{background:var(--red-lt);color:var(--red)}
+.b-ok{background:var(--green-bg);color:var(--green)}
+.b-warn{background:var(--amber-bg);color:var(--amber)}
+
+/* ─── ALERTS ──────────────────────────────────────────── */
+.al{padding:9px 13px;border-radius:var(--r);font-size:12.5px;
+    margin-bottom:10px;border-left:3px solid;display:flex;gap:8px}
+.al-i{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.al-ok{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.al-w{background:var(--amber-bg);border-color:#d97706;color:var(--amber)}
+.al-d{background:var(--red-lt);border-color:var(--red);color:var(--red)}
+
+/* ─── TABLES ──────────────────────────────────────────── */
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--rl);
+    margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--ch);color:#fff;padding:8px 10px;text-align:left;
+   font-weight:600;font-size:10.5px;white-space:nowrap;letter-spacing:.03em;
+   text-transform:uppercase}
+td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.mono{font-family:var(--fm);font-size:11.5px}
+.tr{text-align:right}
+
+/* ─── UPLOAD ZONE ─────────────────────────────────────── */
+.uz{border:2px dashed var(--border2);border-radius:var(--rl);padding:26px 20px;
+    text-align:center;cursor:pointer;background:var(--off);transition:all .2s}
+.uz:hover,.uz.drag{border-color:var(--red);background:var(--red-lt)}
+.uz-ic{font-size:28px;margin-bottom:6px;display:block}
+
+/* ─── MODE CARDS ──────────────────────────────────────── */
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.mc{border:2px solid var(--border);border-radius:var(--rl);padding:14px 16px;
+    cursor:pointer;transition:all .15s;background:var(--white)}
+.mc:hover{border-color:var(--red)}
+.mc.on{border-color:var(--red);background:var(--red-lt)}
+.mc-t{font-size:16px;font-weight:800;color:var(--black);margin-bottom:3px;
+      letter-spacing:-.2px}
+.mc-s{font-size:12px;color:var(--grey)}
+.mc.on .mc-t{color:var(--red)}
+
+/* ─── SUMMARY BAR ─────────────────────────────────────── */
+.sum{background:var(--ch);border-radius:var(--rl);padding:14px 20px;
+     display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));
+     gap:12px;margin-bottom:16px}
+.sbi .sl{font-size:10px;color:rgba(255,255,255,.42);text-transform:uppercase;
+         letter-spacing:.05em;margin-bottom:2px}
+.sbi .sv{font-size:21px;font-weight:800;color:#fff;line-height:1.1}
+.sbi .ss{font-size:10px;color:rgba(255,255,255,.32)}
+.sdv{width:1px;background:rgba(255,255,255,.1)}
+
+/* ─── TYPE SUMMARY ────────────────────────────────────── */
+.ts{background:var(--white);border:1px solid var(--border);
+    border-radius:var(--rl);overflow:hidden;margin-bottom:14px}
+.ts-r{display:grid;grid-template-columns:92px 1fr 55px 76px 55px;gap:8px;
+      padding:8px 14px;border-bottom:1px solid var(--border);
+      font-size:12.5px;align-items:center}
+.ts-r:last-child{border-bottom:none}
+.ts-h{background:var(--off);font-weight:700;font-size:10.5px;color:var(--ch)}
+.ts-t{background:var(--red-lt);font-weight:700;border-top:2px solid var(--red)}
+
+/* ─── LOT HEADER ──────────────────────────────────────── */
+.lot-h{font-size:12px;font-weight:700;color:var(--grey);text-transform:uppercase;
+       letter-spacing:.06em;margin:14px 0 7px;display:flex;align-items:center;gap:8px}
+.lot-h::after{content:"";flex:1;height:1px;background:var(--border)}
+
+/* ─── VEHICLE CARDS ───────────────────────────────────── */
+.vc{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);
+    margin-bottom:10px;overflow:hidden;box-shadow:var(--s1)}
+.vc-odc{border-left:4px solid var(--red)}
+.vc-ok{border-left:4px solid var(--green)}
+.vc-hd{display:flex;align-items:center;gap:9px;padding:10px 14px;
+       background:var(--off);border-bottom:1px solid var(--border)}
+.vc-no{width:27px;height:27px;border-radius:50%;background:var(--ch);color:#fff;
+       font-size:12px;font-weight:700;display:flex;align-items:center;
+       justify-content:center;flex-shrink:0}
+.vc-info{flex:1}
+.vc-type{font-size:13.5px;font-weight:700;color:var(--black)}
+.vc-spec{font-size:11px;color:var(--grey);margin-top:1px}
+.vc-wt{font-size:17px;font-weight:800;color:var(--red)}
+.vc-pct{font-size:10.5px;color:var(--grey)}
+.pbar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;
+      width:74px;margin-left:auto;margin-top:3px}
+.pb-f{height:100%;border-radius:2px}
+.vi-h,.vi-r{display:grid;grid-template-columns:78px 1fr 164px 60px 52px;
+            gap:5px;padding:5px 14px;font-size:11.5px;align-items:center}
+.vi-h{background:var(--light);font-weight:700;font-size:10.5px;
+      color:var(--grey);border-bottom:1px solid var(--border)}
+.vi-r{border-bottom:1px solid var(--border)}
+.vi-r:last-child{border-bottom:none}
+.vi-odc{background:#fff8f8}
+.vc-ft{display:flex;gap:12px;flex-wrap:wrap;padding:6px 14px;
+       background:var(--off);border-top:1px solid var(--border);
+       font-size:11.5px;color:var(--grey)}
+.vc-ft strong{color:var(--ch)}
+
+/* ─── SECTION HEADER ──────────────────────────────────── */
+.vp-h{font-size:14px;font-weight:800;color:var(--black);text-transform:uppercase;
+      letter-spacing:.05em;margin-bottom:10px;padding-bottom:7px;
+      border-bottom:2px solid var(--red);display:flex;align-items:center;gap:8px}
+
+/* ─── HYD CARD ────────────────────────────────────────── */
+.hc{border:1px solid #93c5fd;border-left:4px solid #3b82f6;border-radius:var(--rl);
+    margin-bottom:10px;overflow:hidden}
+.hc-hd{display:flex;align-items:center;gap:9px;padding:10px 14px;
+       background:#dbeafe;border-bottom:1px solid #93c5fd}
+.hc-no{width:27px;height:27px;border-radius:50%;background:#1e3a8a;color:#fff;
+       font-size:11px;font-weight:700;display:flex;align-items:center;
+       justify-content:center;flex-shrink:0}
+.hc-bd{padding:12px 14px;background:var(--white)}
+.axv{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:8px 0}
+.au{display:flex;align-items:center;gap:2px;background:#1e3a8a;
+    border-radius:4px;padding:4px 7px}
+.ad{width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.75);
+    display:flex;align-items:center;justify-content:center;
+    font-size:7px;font-weight:700;color:#1e3a8a}
+.aplus{font-size:15px;font-weight:800;color:#1e3a8a;margin:0 2px}
+.albl{font-size:10.5px;font-weight:700;color:#1e3a8a;background:#dbeafe;
+      padding:2px 9px;border-radius:4px;margin-left:6px}
+.aalt{font-size:11.5px;color:#3b82f6;margin-top:4px}
+.hsp{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
+     gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid #bfdbfe}
+.hs-l{font-size:10.5px;color:var(--grey)}
+.hs-v{font-size:13px;font-weight:700;color:var(--black)}
+
+/* ─── FEEDBACK ────────────────────────────────────────── */
+.fbi{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);
+     margin-bottom:9px;overflow:hidden}
+.fbi-h{display:flex;align-items:center;gap:8px;padding:8px 13px;
+       background:var(--off);border-bottom:1px solid var(--border);
+       font-size:12.5px;font-weight:600;flex-wrap:wrap}
+.fbi-b{padding:10px 13px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rt{padding:3px 9px;border-radius:20px;font-size:11px;cursor:pointer;
+    border:1.5px solid var(--border);background:var(--white);color:var(--ch);
+    transition:all .13s;user-select:none}
+.rt:hover,.rt.on{background:var(--ch);color:#fff;border-color:var(--ch)}
+.rt.on-g{background:var(--green);color:#fff;border-color:var(--green)}
+.rt.on-r{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ─── SESSIONS ────────────────────────────────────────── */
+.std{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.sd-p{background:#f59e0b}.sd-r{background:var(--green)}.sd-g{background:var(--red)}
+
+/* ─── PRINT ───────────────────────────────────────────── */
+@media print{
+  #login,#app>.sb,.topbar,.bg,.no-print{display:none!important}
+  #app{display:block!important}.main{display:block}
+  .content{padding:0}.panel{display:block!important}
+  body{background:#fff;font-size:11px}
+  .card,.vc,.hc,.ts{box-shadow:none;break-inside:avoid;border:1px solid #ddd}
+  .sum{background:var(--ch)!important;
+       -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #ph{display:block!important}
+  #psig{display:grid!important}
+  @page{size:A4 portrait;margin:12mm 14mm}
+}
+#ph{display:none}
+.ph-in{background:var(--red);border-radius:var(--r);padding:10px 14px;
+       margin-bottom:14px}
+.ph-logo img{height:22px;filter:brightness(0) invert(1);margin-bottom:5px}
+.ph-logo .ph-fb{display:none;font-size:13px;font-weight:800;color:#fff}
+.ph-title{font-size:16px;font-weight:800;color:#fff;margin-bottom:2px;
+          letter-spacing:.01em}
+.ph-meta{font-size:10.5px;color:rgba(255,255,255,.62);
+         display:flex;gap:14px;flex-wrap:wrap}
+#psig{display:none;margin-top:26px;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.sig-b{border-top:1px solid var(--border);padding-top:8px;
+       font-size:11px;color:var(--grey)}
+
+/* ─── UAT RIBBON ──────────────────────────────────────── */
+.uat{position:fixed;top:0;right:0;background:#f59e0b;color:var(--black);
+     font-size:10px;font-weight:800;padding:3px 13px 3px 9px;
+     border-bottom-left-radius:var(--r);z-index:9998;letter-spacing:.07em;
+     text-transform:uppercase;box-shadow:var(--s1)}
+</style>
+</head>
+<body>
+<div class="uat">UAT v1.0</div>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login">
+  <div class="lp">
+    <div>
+      <div class="lp-logo">
+        <img src="assets/procam-logo.png" alt="Procam Logistics"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <div class="lp-logo-fb">PROCAM<small>LOGISTICS</small></div>
+      </div>
+      <div class="lp-headline">Load Planning<br><em>Platform</em></div>
+      <div class="lp-sub">AI-powered trailer type and count optimisation for Procam's heavy project cargo operations.</div>
+      <div class="lp-tags">
+        <span class="lp-tag">Heavy Haul</span>
+        <span class="lp-tag">ODC</span>
+        <span class="lp-tag">HMT Axle Engine</span>
+        <span class="lp-tag">UAT v1.0</span>
+      </div>
+    </div>
+    <div class="lp-foot">
+      Procam Logistics Pvt. Ltd.&nbsp; ·&nbsp; Confidential&nbsp; ·&nbsp; 2026<br>
+      Delivering Innovation &amp; Commitment.&#8482;
+    </div>
+  </div>
+
+  <div class="lf-wrap">
+    <div class="lf">
+      <h2>Sign in</h2>
+      <p>Enter your assigned credentials to access the platform</p>
+      <label class="lf-lbl">Username</label>
+      <input class="lf-in" id="lf-u" type="text" placeholder="e.g. suranjan.aon"
+             autocomplete="username">
+      <label class="lf-lbl">Password</label>
+      <input class="lf-in" id="lf-p" type="password" placeholder="Password"
+             autocomplete="current-password">
+      <div class="lf-err" id="lf-err">Incorrect username or password.</div>
+      <button class="lf-btn" onclick="doLogin()">Sign In &rarr;</button>
+      <div class="lf-ver">Procam Load Planning Platform &nbsp;·&nbsp; UAT v1.0 &nbsp;·&nbsp; Confidential</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ APP ═══════════════ -->
+<div id="app">
+
+<!-- SIDEBAR -->
+<div class="sb">
+  <div class="sb-top">
+    <div class="sb-logo">
+      <img src="assets/procam-logo.png" alt="Procam Logistics"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="sb-logo-fb">PROCAM<small>LOGISTICS</small></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-av" id="sb-av">—</div>
+      <div>
+        <div class="sb-un" id="sb-un">—</div>
+        <div class="sb-ur" id="sb-ur">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-sec">Analysis</div>
+  <div class="sb-link on" data-p="upload" onclick="nav(this,'upload')">
+    <span class="ic">📤</span>New packing list</div>
+  <div class="sb-link" data-p="result" onclick="nav(this,'result')">
+    <span class="ic">🔩</span>Vehicle plan
+    <span class="chip ch-g" id="ch-veh" style="display:none">0</span></div>
+  <div class="sb-link" data-p="feedback" onclick="nav(this,'feedback')">
+    <span class="ic">✏️</span>Expert feedback
+    <span class="chip ch-r" id="ch-fb" style="display:none">!</span></div>
+
+  <div class="sb-sec">Repository</div>
+  <div class="sb-link" data-p="sessions" onclick="nav(this,'sessions')">
+    <span class="ic">🗂️</span>All sessions
+    <span class="chip ch-a" id="ch-sess">0</span></div>
+  <div class="sb-link" data-p="report" onclick="nav(this,'report')">
+    <span class="ic">📊</span>Summary report</div>
+
+  <div id="adm-sec" class="sb-sec" style="display:none">Admin</div>
+  <div id="adm-link" class="sb-link" data-p="admin"
+       onclick="nav(this,'admin')" style="display:none">
+    <span class="ic">👤</span>User management</div>
+
+  <div class="sb-kpi">
+    <div class="kk">Training progress</div>
+    <div class="kv" id="sb-sn">0 <span style="font-size:13px;color:rgba(255,255,255,.32)">/20</span></div>
+    <div class="ks">sessions logged</div>
+  </div>
+  <div class="tbar"><div class="tbar-f" id="sb-tb" style="width:0%"></div></div>
+  <div class="sb-bot">
+    <div class="sb-out" onclick="doLogout()">&larr; Sign out</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+<div class="topbar">
+  <div class="tb-bc">
+    <span class="tb-root">Procam PTM</span>
+    <span class="tb-sep">/</span>
+    <span class="tb-cur" id="tb-cur">New Packing List</span>
+  </div>
+  <div class="tb-right no-print">
+    <button class="btn btn-sm btn-ch" onclick="doPrint()">🖨 Print / PDF</button>
+    <button class="btn btn-sm" onclick="doExcel()">📊 Excel</button>
+    <button class="btn btn-sm btn-r" onclick="saveSession()">💾 Save</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- print header — hidden until print -->
+<div id="ph">
+  <div class="ph-in">
+    <div class="ph-logo">
+      <img src="assets/procam-logo.png" alt="Procam Logistics"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="ph-fb">PROCAM LOGISTICS</div>
+    </div>
+    <div class="ph-title" id="ph-t">PROCAM LOGISTICS — LOAD PLAN</div>
+    <div class="ph-meta">
+      <span id="ph-ref">—</span>
+      <span id="ph-rt">—</span>
+      <span id="ph-dt">—</span>
+      <span id="ph-by">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═ UPLOAD ═ -->
+<div id="panel-upload" class="panel on">
+  <div class="card card-r">
+    <div class="ct">Consignment Details</div>
+    <div class="f4">
+      <div class="fg"><div class="fl">Client / Project <span class="req">*</span></div>
+        <input id="p-cli" placeholder="e.g. JSW Motors / BHEL Haridwar"></div>
+      <div class="fg"><div class="fl">Job reference</div>
+        <input id="p-ref" placeholder="e.g. PLPL-2026-001"></div>
+      <div class="fg"><div class="fl">Origin</div>
+        <input id="p-ori" placeholder="e.g. Mumbai Port"></div>
+      <div class="fg"><div class="fl">Destination</div>
+        <input id="p-dst" placeholder="e.g. Bidkin Aurangabad"></div>
+    </div>
+  </div>
+
+  <div class="mg">
+    <div class="mc on" id="mc-s" onclick="setMode('single')">
+      <div class="mc-t">📦 Single Cargo</div>
+      <div class="mc-s">Enter L, W, H, Weight for one item</div>
+    </div>
+    <div class="mc" id="mc-m" onclick="setMode('multi')">
+      <div class="mc-t">📋 Multiple Items</div>
+      <div class="mc-s">Upload Excel / CSV packing list (any format, any language)</div>
+    </div>
+  </div>
+
+  <div id="in-single" class="card">
+    <div class="ct">Cargo Dimensions</div>
+    <div class="f4">
+      <div class="fg"><div class="fl">Length (m) <span class="req">*</span></div>
+        <input id="s-L" type="number" step=".01" placeholder="e.g. 8.20"></div>
+      <div class="fg"><div class="fl">Width (m) <span class="req">*</span></div>
+        <input id="s-W" type="number" step=".01" placeholder="e.g. 4.70"></div>
+      <div class="fg"><div class="fl">Height (m) <span class="req">*</span></div>
+        <input id="s-H" type="number" step=".01" placeholder="e.g. 4.76"></div>
+      <div class="fg"><div class="fl">Gross weight (MT) <span class="req">*</span></div>
+        <input id="s-WT" type="number" step=".1" placeholder="e.g. 136.4"></div>
+    </div>
+    <div class="f2">
+      <div class="fg"><div class="fl">Description</div>
+        <input id="s-desc" placeholder="e.g. Crown unit / Transformer / GIS Bay Module"></div>
+      <div class="fg"><div class="fl">Supplier trailer spec (if stated)</div>
+        <input id="s-vp" placeholder="e.g. LBT-1, 40HBT, ODC Hydraulic"></div>
+    </div>
+    <button class="btn btn-r btn-full" onclick="runSingle()">
+      ⚙&nbsp; Calculate trailer requirement</button>
+  </div>
+
+  <div id="in-multi" class="card" style="display:none">
+    <div class="ct">Upload Packing List</div>
+    <div class="uz" id="dz" onclick="document.getElementById('fi').click()">
+      <span class="uz-ic">📂</span>
+      <div style="font-size:14px;font-weight:700;color:var(--black);margin-bottom:4px">
+        Drop Excel / CSV here or click to browse</div>
+      <div style="font-size:12px;color:var(--grey)">
+        mm / cm / m / ft &nbsp;·&nbsp; kg / MT auto-detected &nbsp;·&nbsp;
+        Multi-lot &nbsp;·&nbsp; Chinese / Japanese / German headers supported</div>
+      <input type="file" id="fi" accept=".xlsx,.xls,.csv" style="display:none"
+             onchange="handleFile(this)">
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                margin-top:9px;flex-wrap:wrap;gap:6px">
+      <button class="btn btn-ot btn-sm" onclick="dlTemplate()">
+        ⬇&nbsp; Download Procam packing list template</button>
+      <span style="font-size:11.5px;color:var(--grey)">
+        Fill in metres (m) and metric tonnes (MT)</span>
+    </div>
+    <div id="up-msg" style="margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- ═ RESULT ═ -->
+<div id="panel-result" class="panel">
+  <div id="result-body"></div>
+  <div class="bg no-print" style="margin-top:10px">
+    <button class="btn btn-r"
+            onclick="nav(document.querySelector('[data-p=feedback]'),'feedback')">
+      ✏&nbsp; Expert feedback &rarr;</button>
+    <button class="btn btn-ch btn-sm" onclick="doPrint()">🖨 Print / PDF</button>
+    <button class="btn btn-sm" onclick="doExcel()">📊 Excel</button>
+    <button class="btn btn-gn btn-sm" onclick="saveSession()">💾 Save session</button>
+  </div>
+  <div id="psig">
+    <div class="sig-b">Load Planner<br><br>_________________________<br>Name / Signature / Date</div>
+    <div class="sig-b">Operations Head<br><br>_________________________<br>Name / Signature / Date</div>
+    <div class="sig-b">Field Supervisor<br><br>_________________________<br>Received / Date</div>
+  </div>
+</div>
+
+<!-- ═ FEEDBACK ═ -->
+<div id="panel-feedback" class="panel">
+  <div class="card card-r">
+    <div class="ct">Expert Feedback — AI Decision Review</div>
+    <div class="al al-i"><span>ℹ</span><span>
+      Review each item. Mark Correct or Wrong. For wrong decisions — select the right
+      type and explain why. Every correction trains the next engine version.</span></div>
+    <div id="fb-items"></div>
+    <div class="card" style="margin-top:10px">
+      <div class="ct">Session Annotation</div>
+      <div class="f4">
+        <div class="fg"><div class="fl">Cluster wt limit (MT)</div>
+          <input id="fb-cwt" type="number" value="35"></div>
+        <div class="fg"><div class="fl">Cluster L limit (m)</div>
+          <input id="fb-cl" type="number" value="12"></div>
+        <div class="fg"><div class="fl">Route / site constraints</div>
+          <input id="fb-rt" placeholder="e.g. hill route, 3m road width"></div>
+        <div class="fg"><div class="fl">Fragility</div>
+          <select id="fb-fr">
+            <option>Standard — cluster per rules</option>
+            <option>Fragile — reduce cluster</option>
+            <option>Critical — solo vehicles only</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:10px">
+        <div class="fl">Expert reasoning (most valuable training signal)</div>
+        <textarea id="fb-txt" rows="4"
+          placeholder="Explain decisions. e.g.: Crown 8.2×4.7×4.76m, 136MT → HYD — width extreme ODC and weight exceeds 41MT. Tie rods 14.15m → 50HBT as L > 12.5m..."></textarea>
+      </div>
+      <div class="bg">
+        <button class="btn btn-gn" onclick="submitFb()">
+          ✅&nbsp; Submit to training log</button>
+        <button class="btn btn-sm"
+                onclick="nav(document.querySelector('[data-p=result]'),'result')">
+          &larr; Back to plan</button>
+      </div>
+      <div id="fb-msg" style="margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═ SESSIONS ═ -->
+<div id="panel-sessions" class="panel">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div class="ct" style="margin-bottom:0">All Sessions</div>
+      <div style="display:flex;gap:7px">
+        <input id="sess-q" placeholder="Search…"
+               style="width:200px;font-size:12px" oninput="renderSess()">
+        <button class="btn btn-sm btn-r" onclick="exportAllSess()">
+          ⬇ Export JSON</button>
+      </div>
+    </div>
+    <div id="sess-tbl"></div>
+  </div>
+</div>
+
+<!-- ═ REPORT ═ -->
+<div id="panel-report" class="panel">
+  <div id="report-body"></div>
+</div>
+
+<!-- ═ ADMIN ═ -->
+<div id="panel-admin" class="panel">
+  <div class="card card-r">
+    <div class="ct">User Management</div>
+    <div class="al al-w"><span>⚠</span>
+      <span>Credentials are stored in browser localStorage.
+        Share with team members securely.</span></div>
+    <div class="f4">
+      <div class="fg"><div class="fl">Username</div>
+        <input id="nu-u" placeholder="e.g. francis.xavier"></div>
+      <div class="fg"><div class="fl">Display name</div>
+        <input id="nu-n" placeholder="e.g. Francis Xavier"></div>
+      <div class="fg"><div class="fl">Password</div>
+        <input id="nu-p" type="password" placeholder="Password"></div>
+      <div class="fg"><div class="fl">Role</div>
+        <select id="nu-r">
+          <option value="planner">Load Planner</option>
+          <option value="supervisor">Field Supervisor</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-r btn-sm" onclick="addUser()">+ Add user</button>
+    <div class="tw" style="margin-top:12px">
+      <table>
+        <thead>
+          <tr><th>Username</th><th>Name</th><th>Role</th><th>Sessions</th><th>Action</th></tr>
+        </thead>
+        <tbody id="usr-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- content -->
+</div><!-- main -->
+</div><!-- app -->
+
+<script>
+// ═══════════════════════════════════════════════
+//  EMBEDDED DATA (injected at build time)
+// ═══════════════════════════════════════════════
+var TMPL = "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";
+
+// ═══════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════
+var DEF_USERS = [
+  {u:"suranjan.aon",  p:"procam@123", name:"Suranjan Aon",    role:"admin",      ini:"SA"},
+  {u:"nilesh.sinha",  p:"procam@456", name:"Nilesh K. Sinha", role:"admin",      ini:"NS"},
+  {u:"planner1",      p:"procam@789", name:"Load Planner",    role:"planner",    ini:"LP"},
+  {u:"supervisor1",   p:"site@123",   name:"Site Supervisor", role:"supervisor", ini:"SS"},
+];
+// ── Server-backed persistence (SQLite on a persistent disk) ──────
+// Data lives on the server, NOT in this browser. A localStorage copy
+// is kept only as an offline fallback so the app still opens if the
+// server is briefly unreachable.
+var USERS    = JSON.parse(localStorage.getItem("pu") || JSON.stringify(DEF_USERS));
+var SESSIONS = JSON.parse(localStorage.getItem("ps") || "[]");
+var CU = null;
+
+function saveU(){
+  localStorage.setItem("pu", JSON.stringify(USERS));        // local fallback cache
+  fetch("/api/users", {method:"PUT", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(USERS)}).catch(e=>console.warn("saveU failed",e));
+}
+function saveS(){
+  localStorage.setItem("ps", JSON.stringify(SESSIONS));     // local fallback cache
+  fetch("/api/sessions", {method:"PUT", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(SESSIONS)}).catch(e=>console.warn("saveS failed",e));
+}
+
+// Pull the authoritative data from the server before first login.
+function bootstrapData(){
+  return fetch("/api/data").then(r=>r.json()).then(d=>{
+    if(Array.isArray(d.users) && d.users.length) USERS    = d.users;
+    if(Array.isArray(d.sessions))                SESSIONS = d.sessions;
+    localStorage.setItem("pu", JSON.stringify(USERS));
+    localStorage.setItem("ps", JSON.stringify(SESSIONS));
+  }).catch(e=>console.warn("bootstrap failed, using local cache",e));
+}
+bootstrapData();
+
+document.getElementById("lf-p").addEventListener("keydown",
+  e=>{ if(e.key==="Enter") doLogin(); });
+document.getElementById("lf-u").addEventListener("keydown",
+  e=>{ if(e.key==="Enter") document.getElementById("lf-p").focus(); });
+
+function doLogin(){
+  var u = document.getElementById("lf-u").value.trim().toLowerCase();
+  var p = document.getElementById("lf-p").value;
+  var found = USERS.find(x => x.u.toLowerCase()===u && x.p===p);
+  if(!found){ document.getElementById("lf-err").style.display="block"; return; }
+  CU = found;
+  document.getElementById("lf-err").style.display = "none";
+  document.getElementById("login").classList.add("out");
+  setTimeout(()=>{
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "grid";
+  }, 320);
+  document.getElementById("sb-av").textContent = found.ini||"—";
+  document.getElementById("sb-un").textContent = found.name;
+  document.getElementById("sb-ur").textContent = found.role;
+  if(found.role==="admin"){
+    document.getElementById("adm-sec").style.display = "";
+    document.getElementById("adm-link").style.display = "";
+  }
+  renderUsrTable(); updateChips();
+}
+function doLogout(){
+  CU = null;
+  document.getElementById("login").style.display = "flex";
+  document.getElementById("login").classList.remove("out");
+  document.getElementById("app").style.display = "none";
+  document.getElementById("lf-u").value = "";
+  document.getElementById("lf-p").value = "";
+}
+
+// ═══════════════════════════════════════════════
+//  VEHICLE MASTER
+// ═══════════════════════════════════════════════
+var VM = [
+  {code:"50HBT",name:"50' Heavy Bogie",  maxL:15.5,maxW:3.0, maxH:2.0, payload:50,clWT:45,clL:14,solo:true, cls:"b-50h"},
+  {code:"40HBT",name:"40' Heavy Bogie",  maxL:12.2,maxW:2.6, maxH:2.2, payload:40,clWT:35,clL:12,solo:false,cls:"b-40h"},
+  {code:"SLBT", name:"Semi-lowbed / LBT",maxL:12.0,maxW:2.55,maxH:1.4, payload:30,clWT:28,clL:11,solo:false,cls:"b-slbt"},
+  {code:"MECH", name:"40' Mech Flatbed", maxL:12.0,maxW:2.44,maxH:2.4, payload:25,clWT:25,clL:11,solo:false,cls:"b-mech"},
+  {code:"JCB32",name:"32' JCB Flatbed",  maxL:9.8, maxW:2.44,maxH:2.0, payload:12,clWT:10,clL:9, solo:false,cls:"b-jcb"},
+  {code:"LPT",  name:"LPT / LCV Truck",  maxL:6.5, maxW:2.1, maxH:1.8, payload:7, clWT:6, clL:6, solo:false,cls:"b-lpt"},
+];
+var BM = {"50HBT":"b-50h","40HBT":"b-40h","SLBT":"b-slbt","MECH":"b-mech",
+          "JCB32":"b-jcb","LPT":"b-lpt","HYD_FLAG":"b-hyd"};
+function bc(c){ return BM[c]||"b-mech"; }
+var HYD_WT=41, HYD_GVW=55, TARE=14;
+
+// ═══════════════════════════════════════════════
+//  INDIA HMT AXLE UNIT LOGIC
+//  Units available: 4-axle and 6-axle only.
+//  Cannot make 7, 9, 11, 13, 15, 17, 19 axle lines.
+// ═══════════════════════════════════════════════
+function getAxleCombos(n){
+  if(n < 4) n = 4;
+  var r = [], seen = new Set();
+  for(var f=0; f<=10; f++){
+    for(var x=0; x<=8; x++){
+      var t = f*4 + x*6;
+      if(t >= n && t <= n+6){
+        var k = t+"-"+f+"-"+x;
+        if(!seen.has(k)){
+          seen.add(k);
+          r.push({total:t, u4:f, u6:x, label:mkLabel(f,x)});
+        }
+      }
+    }
+  }
+  r.sort((a,b) => a.total-b.total || (a.u4+a.u6)-(b.u4+b.u6));
+  var best = r.filter(c => c.total === r[0].total);
+  if(best.length===1 && r.length>1){
+    var nxt = r.find(c => c.total > r[0].total);
+    if(nxt) best.push(nxt);
+  }
+  return best.slice(0,2);
+}
+function mkLabel(f, x){
+  var p = [];
+  if(x > 0) p.push(x + " unit" + (x>1?"s":"") + " of 6-axle");
+  if(f > 0) p.push(f + " unit" + (f>1?"s":"") + " of 4-axle");
+  return p.join(" + ") || "—";
+}
+function calcHYD(L, WT){
+  var bW = Math.ceil(WT/14.5),  bL = Math.ceil(L/1.5);
+  var raw = Math.max(bW, bL, 4);
+  return {raw, byWT:bW, byL:bL, combos:getAxleCombos(raw)};
+}
+function htType(a){
+  var m={4:"HT1",6:"HT2",8:"HT3",10:"HT4",12:"HT5",14:"HT6",16:"HT7",18:"HT8",20:"HT9"};
+  for(var k of Object.keys(m).map(Number).sort((a,b)=>a-b))
+    if(a <= k) return m[k];
+  return "HT9+";
+}
+function htGVW(a){ return Math.min(a*18+25, 601); }
+function htPm(a){  return a<=8 ? "Instant (same day)" : "7 working days"; }
+function htFee(a){ return a<=8 ? 1200 : a<=14 ? 2400 : a<=20 ? 3600 : 4800; }
+
+// ═══════════════════════════════════════════════
+//  CLASSIFICATION
+// ═══════════════════════════════════════════════
+function classify(L, W, H, WT, vp, desc){
+  var cat = String(vp||"").toLowerCase();
+  var d   = String(desc||"").toLowerCase();
+  var r   = [];
+  if(WT>HYD_WT || WT+TARE>HYD_GVW || W>3.5 || H>4.2 || L>15 ||
+     cat.includes("hydraulic") || cat.includes("hyd") || cat.includes("odc")){
+    var why = [];
+    if(WT>HYD_WT)      why.push("WT "+WT.toFixed(1)+"MT > "+HYD_WT+"MT");
+    if(WT+TARE>HYD_GVW)why.push("GVW "+(WT+TARE).toFixed(1)+"MT > "+HYD_GVW+"MT");
+    if(W>3.5)          why.push("W "+W.toFixed(2)+"m > 3.5m");
+    if(H>4.2)          why.push("H "+H.toFixed(2)+"m > 4.2m");
+    if(L>15)           why.push("L "+L.toFixed(2)+"m > 15m");
+    return {code:"HYD_FLAG", reasons:["HYD required — "+why.join(", ")], solo:true};
+  }
+  if(/lbt-\d|lowbed|slbt/.test(cat))  {r.push("Supplier: LBT");   return {...VM.find(v=>v.code==="SLBT"),  reasons:r};}
+  if(/50hbt|50ft/.test(cat))           {r.push("Supplier: 50HBT"); return {...VM.find(v=>v.code==="50HBT"), reasons:r};}
+  if(/40hbt/.test(cat))                {r.push("Supplier: 40HBT"); return {...VM.find(v=>v.code==="40HBT"), reasons:r};}
+  if(/jcb|32ft/.test(cat))             {r.push("Supplier: JCB");   return {...VM.find(v=>v.code==="JCB32"), reasons:r};}
+  if(L > 12.5){r.push("L "+L.toFixed(2)+"m > 12.5m"); return {...VM.find(v=>v.code==="50HBT"),reasons:r};}
+  if(WT>=30 && L>9){r.push("WT ≥ 30MT + L > 9m");     return {...VM.find(v=>v.code==="50HBT"),reasons:r};}
+  if(W > 3.0){r.push("W "+W.toFixed(2)+"m > 3.0m");   return {...VM.find(v=>v.code==="50HBT"),reasons:r};}
+  if(L > 9)  {r.push("L "+L.toFixed(2)+"m > 9m");     return {...VM.find(v=>v.code==="40HBT"),reasons:r};}
+  if(WT > 15){r.push("WT "+WT.toFixed(1)+"MT > 15MT");return {...VM.find(v=>v.code==="40HBT"),reasons:r};}
+  if(W > 2.3){r.push("W "+W.toFixed(2)+"m > 2.3m");   return {...VM.find(v=>v.code==="40HBT"),reasons:r};}
+  if(/gis|switchgear|245kv|220kv/.test(d)){r.push("GIS / switchgear → LBT"); return {...VM.find(v=>v.code==="SLBT"),reasons:r};}
+  if(H>0 && H<1.5 && L>3.5 && W>1.8){r.push("Low-H "+H.toFixed(2)+"m precision gear"); return {...VM.find(v=>v.code==="SLBT"),reasons:r};}
+  if(WT<=3 && L<=6){r.push("WT ≤ 3MT, L ≤ 6m");       return {...VM.find(v=>v.code==="LPT"),  reasons:r};}
+  if(WT<=8 && L<=8 && W<=2.2){r.push("WT ≤ 8MT, L ≤ 8m, W ≤ 2.2m"); return {...VM.find(v=>v.code==="JCB32"),reasons:r};}
+  r.push("General cargo → flatbed");
+  return {...VM.find(v=>v.code==="MECH"), reasons:r};
+}
+function isODC(L,W,H,WT){ return L>12 || W>2.1 || H>4.2 || WT>26; }
+
+function clusterLot(items){
+  var s = [...items].sort((a,b) => b.WT-a.WT);
+  var used = new Array(s.length).fill(false), vehs = [];
+  s.forEach((a,i)=>{
+    if(used[i]) return;
+    var code = a.expertCode||a.aiCode, vm = VM.find(v=>v.code===code)||VM[3];
+    var vi = [a]; used[i] = true;
+    if(vm.solo){ vehs.push({code,vm,items:vi,totalWT:a.WT,totalL:a.L}); return; }
+    var vWT=a.WT, vL=a.L;
+    s.forEach((b,j)=>{
+      if(j<=i || used[j] || b.aiCode!==code) return;
+      if(vWT+b.WT<=vm.clWT && vL+b.L+0.3<=vm.clL){
+        vi.push(b); vWT+=b.WT; vL+=b.L+0.3; used[j]=true;
+      }
+    });
+    vehs.push({code,vm,items:vi,totalWT:vWT,totalL:vL});
+  });
+  return vehs;
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+var _items=[], _lots=[], _lotRes={}, _corrections=[], _meta={};
+var PNAMES = {upload:"New Packing List", result:"Vehicle Plan",
+              feedback:"Expert Feedback", sessions:"All Sessions",
+              report:"Summary Report",   admin:"User Management"};
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function nav(el, p){
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("on"));
+  document.querySelectorAll(".sb-link").forEach(x => x.classList.remove("on"));
+  document.getElementById("panel-"+p).classList.add("on");
+  if(el) el.classList.add("on");
+  document.getElementById("tb-cur").textContent = PNAMES[p]||p;
+  if(p==="sessions") renderSess();
+  if(p==="report")   renderReport();
+  if(p==="admin")    renderUsrTable();
+  if(p==="feedback") renderFb();
+}
+function setMode(m){
+  document.getElementById("in-single").style.display = m==="single" ? "block" : "none";
+  document.getElementById("in-multi").style.display  = m==="multi"  ? "block" : "none";
+  ["s","m"].forEach(k => document.getElementById("mc-"+k).classList.toggle("on", k===m[0]));
+}
+
+// ═══════════════════════════════════════════════
+//  PARSING
+// ═══════════════════════════════════════════════
+function nv(v){ var x=parseFloat(String(v||"").replace(/[^0-9.\-]/g,"")); return isNaN(x)?null:x; }
+function detU(h,sv){
+  h=String(h||"").toLowerCase(); var v=nv(sv);
+  if(/(gross\s*[lwh]|\(mm\)|长（cm|gross l|gross w|gross h)/.test(h)) return "mm";
+  if(/(\(cm\)|l\s*-\s*cm|宽（cm|高（cm)/.test(h)) return "cm";
+  if(/(l-ft|-ft\b)/.test(h)) return "ft";
+  if(/(\(m\)|l\s*\(m|w\s*\(m)/.test(h)) return "m";
+  if(v!==null){ if(v>3000) return "mm"; if(v>150) return "cm"; if(v>20) return "ft"; }
+  return "m";
+}
+function cvL(v,u){ if(v===null) return null; return u==="mm"?v/1000:u==="cm"?v/100:u==="ft"?v*0.3048:v; }
+function cvW(v,h){
+  if(v===null) return null; h=String(h||"").toLowerCase();
+  if(/(gross total \(kg|gross wt\.\(kg\)|\(kg\)|gw\b|毛重)/.test(h)) return v/1000;
+  if(v>500) return v/1000; return v;
+}
+function gc(hdrs, kws){ for(var k of kws) for(var i=0;i<hdrs.length;i++) if(String(hdrs[i]||"").toLowerCase().includes(k)) return i; return -1; }
+function fHR(rows){
+  var kws=["length","width","height","weight","gross","description","package","case no","l (m","l(mm","长（cm"];
+  for(var i=0;i<Math.min(15,rows.length);i++){
+    var r=(rows[i]||[]).map(c=>String(c||"").toLowerCase());
+    if(kws.some(k=>r.some(h=>h.includes(k)))) return i;
+  }
+  return 0;
+}
+function parseRows(rows){
+  var hi=fHR(rows), hdrs=rows[hi]||[];
+  var data=rows.slice(hi+1).filter(r=>r.some(c=>c!==""&&c!==null));
+  var P  = gc(hdrs,["case no","package no","pkg","collo","sr.no","sl no","item no"]);
+  var D  = gc(hdrs,["description","desc","item name","goods","cargo","货物"]);
+  var LO = gc(hdrs,["lot no","lot","shipment","batch","ps0","ps1","ps2","ps3","ps4","phase"]);
+  var LC = gc(hdrs,["gross l","l (m","length","l-ft","l -cm","l(mm","l(cm","l(m","长（cm"]);
+  var WC = gc(hdrs,["gross w","w (m","width","w-ft","w-cm","w(mm","w(cm","w(m","宽（cm"]);
+  var HC = gc(hdrs,["gross h","h (m","height","h-ft","h - cm","h(mm","h(cm","h(m","高（cm"]);
+  var WT = gc(hdrs,["gross total (kg","gross wt","毛重(kg)","gw(kg)","gw","gross total","wt-mt","wt mt","weight","wt","毛重（kg）"]);
+  var QC = gc(hdrs,["qty","quantity","nos","包装箱数量"]);
+  var VP = gc(hdrs,["vehicle plan","veh plan","trailer type","supplier trailer"]);
+  var s0=data[0]||[];
+  var lU=detU(hdrs[LC],LC>=0?s0[LC]:null);
+  var wU=detU(hdrs[WC],WC>=0?s0[WC]:null);
+  var hU=detU(hdrs[HC],HC>=0?s0[HC]:null);
+  var items=[];
+  data.forEach((r,i)=>{
+    var pkg = P>=0?String(r[P]||""):"ITM-"+(i+1);
+    var desc= D>=0?String(r[D]||"").slice(0,60):"";
+    var lot = LO>=0?String(r[LO]||"ALL").trim()||"ALL":"ALL";
+    var L=cvL(nv(LC>=0?r[LC]:null),lU), W=cvL(nv(WC>=0?r[WC]:null),wU), H=cvL(nv(HC>=0?r[HC]:null),hU);
+    var wt=cvW(nv(WT>=0?r[WT]:null),WT>=0?hdrs[WT]:"");
+    var qty=Math.max(1,nv(QC>=0?r[QC]:null)||1), vp=VP>=0?String(r[VP]||""):"";
+    if(L===null && W===null && wt===null) return;
+    for(var q=0;q<qty;q++){
+      var it={pkg:qty>1?pkg+"-"+(q+1):pkg,desc,lot,L:L||0,W:W||0,H:H||0,WT:wt||0,vp,
+              id:Math.random().toString(36).slice(2)};
+      var res=classify(it.L,it.W,it.H,it.WT,it.vp,it.desc);
+      it.aiCode=res.code; it.reasons=res.reasons; it.expertCode=it.aiCode;
+      it.isHYD=it.aiCode==="HYD_FLAG"; it.odc=isODC(it.L,it.W,it.H,it.WT);
+      items.push(it);
+    }
+  });
+  return items;
+}
+
+// ═══════════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════════
+var dz = document.getElementById("dz");
+dz.addEventListener("dragover", e=>{ e.preventDefault(); dz.classList.add("drag"); });
+dz.addEventListener("dragleave", ()=> dz.classList.remove("drag"));
+dz.addEventListener("drop", e=>{
+  e.preventDefault(); dz.classList.remove("drag");
+  if(e.dataTransfer.files[0]){
+    document.getElementById("fi").files = e.dataTransfer.files;
+    handleFile(document.getElementById("fi"));
+  }
+});
+function handleFile(inp){
+  var f=inp.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=e=>{ try{
+    var wb=XLSX.read(e.target.result,{type:"array"});
+    var best=wb.SheetNames[0], bN=0;
+    wb.SheetNames.forEach(sn=>{
+      var d=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:""});
+      if(d.length>bN){bN=d.length;best=sn;}
+    });
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[best],{header:1,defval:""});
+    var items=parseRows(rows);
+    if(!items.length){msg("up-msg","warn","Could not parse. Check format.");return;}
+    msg("up-msg","ok","✓ "+items.length+" items parsed. Building plan…");
+    setTimeout(()=>buildPlan(items),100);
+  }catch(er){msg("up-msg","warn","Cannot read: "+er.message);} };
+  r.readAsArrayBuffer(f);
+}
+
+// ═══════════════════════════════════════════════
+//  SINGLE CARGO
+// ═══════════════════════════════════════════════
+function runSingle(){
+  var L=+document.getElementById("s-L").value||0;
+  var W=+document.getElementById("s-W").value||0;
+  var H=+document.getElementById("s-H").value||0;
+  var WT=+document.getElementById("s-WT").value||0;
+  var desc=document.getElementById("s-desc").value;
+  var vp=document.getElementById("s-vp").value;
+  if(!WT && !L){ alert("Enter at least Length and Weight."); return; }
+  var it={pkg:"ITEM-01",desc,lot:"ALL",L,W,H,WT,vp,id:"s1"};
+  var res=classify(L,W,H,WT,vp,desc);
+  it.aiCode=res.code; it.reasons=res.reasons; it.expertCode=it.aiCode;
+  it.isHYD=res.code==="HYD_FLAG"; it.odc=isODC(L,W,H,WT);
+  buildPlan([it]);
+}
+
+// ═══════════════════════════════════════════════
+//  BUILD PLAN
+// ═══════════════════════════════════════════════
+function buildPlan(items){
+  _items=items;
+  _lots=[...new Set(items.map(x=>x.lot))].sort();
+  _lotRes={};
+  _lots.forEach(l=>{ _lotRes[l]=clusterLot(items.filter(x=>x.lot===l&&!x.isHYD)); });
+  var m=_meta={
+    client:document.getElementById("p-cli").value,
+    ref:   document.getElementById("p-ref").value,
+    origin:document.getElementById("p-ori").value,
+    dest:  document.getElementById("p-dst").value,
+    by:    (CU||{}).name||"—",
+    date:  new Date().toLocaleDateString("en-IN"),
+    ts:    new Date().toISOString(),
+  };
+  document.getElementById("ph-t").textContent =
+    "PROCAM LOGISTICS — LOAD PLAN"+(m.client?" · "+m.client:"");
+  document.getElementById("ph-ref").textContent = "Ref: "+(m.ref||"—");
+  document.getElementById("ph-rt").textContent  = (m.origin||"—")+" → "+(m.dest||"—");
+  document.getElementById("ph-dt").textContent  = "Date: "+m.date;
+  document.getElementById("ph-by").textContent  = "By: "+m.by;
+  renderResult();
+  var tv=Object.values(_lotRes).reduce((s,v)=>s+v.length,0);
+  document.getElementById("ch-veh").textContent=tv;
+  document.getElementById("ch-veh").style.display="";
+  document.getElementById("ch-fb").style.display="";
+  nav(document.querySelector("[data-p=result]"),"result");
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER RESULT
+// ═══════════════════════════════════════════════
+function renderResult(){
+  var allV=Object.values(_lotRes).flat(), tv=allV.length;
+  var tWT=allV.reduce((s,v)=>s+v.totalWT,0);
+  var hydI=_items.filter(x=>x.isHYD), odcI=_items.filter(x=>x.odc&&!x.isHYD);
+  var tc={}; allV.forEach(v=>{ tc[v.code]=(tc[v.code]||0)+1; });
+
+  var h=`<div class="sum">
+    <div class="sbi"><div class="sl">Mech Vehicles</div><div class="sv">${tv}</div>
+      <div class="ss">${_lots.length} lot(s)</div></div>
+    <div class="sdv"></div>
+    <div class="sbi"><div class="sl">Cargo Weight</div><div class="sv">${tWT.toFixed(1)}</div>
+      <div class="ss">MT gross</div></div>
+    <div class="sdv"></div>
+    <div class="sbi"><div class="sl">ODC Items</div><div class="sv">${odcI.length}</div>
+      <div class="ss">permit needed</div></div>
+    <div class="sdv"></div>
+    <div class="sbi">
+      <div class="sl" style="color:rgba(255,255,255,.35)">HYD Axle</div>
+      <div class="sv" style="color:${hydI.length?"#f59e0b":"rgba(255,255,255,.3)"}">${hydI.length}</div>
+      <div class="ss" style="color:rgba(255,255,255,.3)">quoted separately</div>
+    </div>
+  </div>`;
+
+  // type summary
+  if(Object.keys(tc).length){
+    h += `<div class="ts">
+      <div class="ts-r ts-h"><div>Type</div><div></div>
+        <div class="tr">Vehicles</div><div class="tr">WT (MT)</div><div class="tr">Lots</div></div>`;
+    var gV=0, gWT=0;
+    Object.keys(tc).sort().forEach(code=>{
+      var cV=allV.filter(v=>v.code===code), cWT=cV.reduce((s,v)=>s+v.totalWT,0);
+      var vm=VM.find(v=>v.code===code)||VM[3];
+      var ls=new Set();
+      _lots.forEach(l=>{ if(_lotRes[l]) _lotRes[l].filter(v=>v.code===code).forEach(()=>ls.add(l)); });
+      h+=`<div class="ts-r">
+        <div><span class="badge ${vm.cls}">${code}</span></div>
+        <div style="font-size:12px;color:var(--grey)">${vm.name}</div>
+        <div class="tr" style="font-weight:700">${cV.length}</div>
+        <div class="tr">${cWT.toFixed(1)}</div>
+        <div class="tr" style="font-size:11px;color:var(--grey)">${[...ls].join(", ")}</div>
+      </div>`;
+      gV+=cV.length; gWT+=cWT;
+    });
+    h+=`<div class="ts-r ts-t"><div>TOTAL</div><div></div>
+      <div class="tr">${gV}</div><div class="tr">${gWT.toFixed(1)}</div><div></div>
+    </div></div>`;
+  }
+
+  // mechanical plan
+  if(tv > 0){
+    h += `<div class="vp-h">Mechanical Trailer Plan</div>`;
+    var vn=0;
+    _lots.forEach(lot=>{
+      var vehs=_lotRes[lot]||[], lotWT=vehs.reduce((s,v)=>s+v.totalWT,0);
+      var hydL=_items.filter(x=>x.lot===lot&&x.isHYD);
+      if(!vehs.length && !hydL.length) return;
+      if(_lots.length > 1)
+        h+=`<div class="lot-h">
+          <span class="badge" style="background:var(--ch);color:#fff">LOT: ${lot}</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11.5px">
+            ${vehs.length} vehicle(s) · ${lotWT.toFixed(1)} MT
+            ${hydL.length?" · "+hydL.length+" HYD item(s)":""}
+          </span></div>`;
+      vehs.forEach(veh=>{
+        vn++;
+        var pct=Math.min(100,Math.round(veh.totalWT/veh.vm.payload*100));
+        var pc=pct>90?"var(--red)":pct>70?"#d97706":"var(--green)";
+        var hasODC=veh.items.some(x=>x.odc);
+        h+=`<div class="vc ${hasODC?"vc-odc":"vc-ok"}">
+          <div class="vc-hd">
+            <div class="vc-no">${vn}</div>
+            <div class="vc-info">
+              <div class="vc-type">${veh.vm.name}&nbsp;
+                <span class="badge ${veh.vm.cls}">${veh.code}</span>
+                ${hasODC?"&nbsp;<span class='badge b-odc'>ODC</span>":""}
+              </div>
+              <div class="vc-spec">Deck ${veh.vm.maxL}m × ${veh.vm.maxW}m &nbsp;·&nbsp; Max payload ${veh.vm.payload} MT</div>
+            </div>
+            <div style="text-align:right">
+              <div class="vc-wt">${veh.totalWT.toFixed(1)} MT</div>
+              <div class="vc-pct">${pct}% loaded</div>
+              <div class="pbar"><div class="pb-f" style="width:${pct}%;background:${pc}"></div></div>
+            </div>
+          </div>
+          <div class="vi-h">
+            <div>Package</div><div>Description</div>
+            <div class="tr">L × W × H (m)</div>
+            <div class="tr">WT (MT)</div>
+            <div class="tr">ODC</div>
+          </div>
+          ${veh.items.map(it=>`<div class="vi-r ${it.odc?"vi-odc":""}">
+            <div class="mono" style="font-weight:600;font-size:11px">${it.pkg}</div>
+            <div style="color:var(--grey);overflow:hidden;text-overflow:ellipsis;
+                        white-space:nowrap" title="${it.desc}">
+              ${it.desc.length>36?it.desc.slice(0,34)+"…":it.desc}</div>
+            <div class="tr mono" style="font-size:11px">
+              ${it.L.toFixed(2)}×${it.W.toFixed(2)}×${it.H.toFixed(2)}</div>
+            <div class="tr" style="font-weight:700">${it.WT.toFixed(2)}</div>
+            <div class="tr">
+              ${it.odc
+                ?"<span class='badge b-odc' style='font-size:9px'>ODC</span>"
+                :"<span class='badge b-ok'  style='font-size:9px'>OK</span>"}
+            </div>
+          </div>`).join("")}
+          <div class="vc-ft">
+            <span>Items: <strong>${veh.items.length}</strong></span>
+            <span>WT: <strong>${veh.totalWT.toFixed(2)} MT</strong></span>
+            <span>L: <strong>~${veh.totalL.toFixed(1)} m</strong></span>
+            <span>Load: <strong>${pct}%</strong></span>
+            ${hasODC?"<span style='color:var(--red);font-weight:600'>⚠ ODC permit required</span>":""}
+          </div>
+        </div>`;
+      });
+    });
+  }
+
+  // hydraulic plan
+  if(hydI.length){
+    h+=`<div class="vp-h" style="margin-top:20px">Hydraulic Axle Trailer Plan</div>
+      <div class="al al-d"><span>&#128680;</span><span>
+        <strong>${hydI.length} item(s) require Modular Hydraulic Trailer (MHT).</strong>
+        MoRTH OWC/ODC permit — apply min. 45 days in advance.
+        Route survey + police escort mandatory.
+      </span></div>`;
+
+    hydI.forEach((it,idx)=>{
+      var ai=calcHYD(it.L, it.WT);
+      var c1=ai.combos[0]||{total:ai.raw,u4:Math.ceil(ai.raw/4),u6:0,label:"—"};
+      var c2=ai.combos[1]||null;
+      var ht=htType(c1.total), gvw=htGVW(c1.total);
+      var pm=htPm(c1.total),   fee=htFee(c1.total);
+
+      // axle unit visual
+      var viz="";
+      for(var s=0;s<c1.u6;s++){
+        viz+=`<div class="au">`;
+        for(var a=0;a<6;a++) viz+=`<div class="ad">${a+1}</div>`;
+        viz+=`</div>`;
+        if(s<c1.u6-1 || c1.u4>0) viz+=`<span class="aplus">+</span>`;
+      }
+      for(var f=0;f<c1.u4;f++){
+        viz+=`<div class="au">`;
+        for(var a=0;a<4;a++) viz+=`<div class="ad">${a+1}</div>`;
+        viz+=`</div>`;
+        if(f<c1.u4-1) viz+=`<span class="aplus">+</span>`;
+      }
+      viz+=`<span class="albl">${c1.total} axle lines = ${c1.label}</span>`;
+
+      h+=`<div class="hc">
+        <div class="hc-hd">
+          <div class="hc-no">${idx+1}</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;color:#1e3a8a">
+              Hydraulic Axle Trailer&nbsp;
+              <span class="badge b-hyd">${ht}</span>
+            </div>
+            <div style="font-size:11.5px;color:#3b82f6;margin-top:1px">
+              ${it.pkg} — ${it.desc.slice(0,50)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:17px;font-weight:800;color:#1e3a8a">
+              ${it.WT.toFixed(1)} MT</div>
+            <div style="font-size:11px;color:#3b82f6">
+              ${it.L.toFixed(2)}×${it.W.toFixed(2)}×${it.H.toFixed(2)} m</div>
+          </div>
+        </div>
+        <div class="hc-bd">
+          <div style="font-size:10px;font-weight:700;color:var(--grey);
+                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">
+            Axle unit configuration (India — 4-axle and 6-axle units only)</div>
+          <div class="axv">${viz}</div>
+          <div style="font-size:12.5px;font-weight:700;color:#1e3a8a;margin-bottom:3px">
+            &#10003; Recommended: ${c1.label} = <strong>${c1.total} axle lines</strong></div>
+          ${c2?`<div class="aalt">&#8644; Alternative: ${c2.label} = ${c2.total} axle lines</div>`:""}
+          <div style="font-size:11.5px;color:var(--grey);margin-top:6px;padding:7px 10px;
+                      background:var(--off);border-radius:var(--r)">
+            By weight: ${it.WT.toFixed(1)}T &divide; 14.5T/axle = ${ai.byWT}
+            &nbsp;&middot;&nbsp;
+            By length: ${it.L.toFixed(2)}m &divide; 1.5m = ${ai.byL}
+            &nbsp;&middot;&nbsp;
+            Use higher = ${ai.raw} &rarr; valid combination =
+            <strong style="color:#1e3a8a">${c1.total} axle lines</strong>
+          </div>
+          <div class="hsp">
+            <div><div class="hs-l">HT type</div>
+                 <div class="hs-v mono">${ht}</div></div>
+            <div><div class="hs-l">Total GVW</div>
+                 <div class="hs-v">${gvw} MT</div></div>
+            <div><div class="hs-l">Permit</div>
+                 <div class="hs-v">${pm}</div></div>
+            <div><div class="hs-l">Fee / 50 km</div>
+                 <div class="hs-v mono">&#8377;${fee.toLocaleString("en-IN")}</div></div>
+            <div><div class="hs-l">Trigger</div>
+                 <div class="hs-v" style="font-size:12px">${it.reasons[0]}</div></div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+
+  if(!tv && !hydI.length)
+    h+=`<div class="al al-w"><span>&#9888;</span>
+          <span>No items parsed. Upload a packing list first.</span></div>`;
+
+  document.getElementById("result-body").innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════
+//  FEEDBACK
+// ═══════════════════════════════════════════════
+function renderFb(){
+  if(!_items.length){
+    document.getElementById("fb-items").innerHTML =
+      `<div class="al al-w"><span>&#9888;</span><span>No items to review. Run a vehicle plan first.</span></div>`;
+    return;
+  }
+  var h="";
+  _items.forEach((it,idx)=>{
+    h+=`<div class="fbi">
+      <div class="fbi-h">
+        <span class="mono" style="font-size:11px;font-weight:700">${it.pkg}</span>
+        <span style="color:var(--grey);font-size:11.5px">${it.desc.slice(0,44)}</span>
+        <span style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="mono" style="font-size:11px;color:var(--grey)">
+            ${it.L.toFixed(2)}×${it.W.toFixed(2)}×${it.H.toFixed(2)}m &nbsp;&middot;&nbsp; ${it.WT.toFixed(2)} MT
+          </span>
+          <span class="badge ${bc(it.aiCode)}">${it.aiCode}</span>
+        </span>
+      </div>
+      <div class="fbi-b">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--grey);
+                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">
+            Mark decision</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button class="rt" id="vc-${idx}" onclick="markV(${idx},'c',this)">
+              &#10003; Correct</button>
+            <button class="rt" id="vw-${idx}" onclick="markV(${idx},'w',this)">
+              &#10007; Wrong</button>
+          </div>
+          <div id="fr-${idx}" style="display:none">
+            <div style="font-size:10px;font-weight:700;color:var(--grey);
+                        text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">
+              Correct trailer</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              ${["50HBT","40HBT","SLBT","MECH","JCB32","LPT","HYD_FLAG"].map(c=>
+                `<button class="rt ${(it.expertCode||it.aiCode)===c?"on":""}"
+                   onclick="setExp(${idx},'${c}',this)">${c}</button>`).join("")}
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--grey);
+                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">
+            Reason (if wrong)</div>
+          <textarea id="fr-r-${idx}" style="font-size:12px;min-height:50px"
+            placeholder="Why is AI wrong? What should it be and why?"></textarea>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById("fb-items").innerHTML = h;
+}
+function markV(idx, v, btn){
+  btn.closest(".fbi-b").querySelectorAll(".rt").forEach(b=>{
+    if(b===btn) return;
+    if(b.id && b.id.startsWith("v")) b.classList.remove("on-g","on-r");
+  });
+  btn.classList.toggle("on-g", v==="c");
+  btn.classList.toggle("on-r", v==="w");
+  var fr=document.getElementById("fr-"+idx);
+  if(fr) fr.style.display = v==="w" ? "block" : "none";
+}
+function setExp(idx, code, btn){
+  _items[idx].expertCode = code;
+  _items[idx].corrected  = (code !== _items[idx].aiCode);
+  btn.closest("[id^=fr-]").querySelectorAll(".rt").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+}
+function submitFb(){
+  _corrections = _items.filter(it=>it.corrected).map(it=>{
+    var ta = document.getElementById("fr-r-"+_items.indexOf(it));
+    return {pkg:it.pkg,desc:it.desc,L:it.L,W:it.W,H:it.H,WT:it.WT,
+            lot:it.lot,ai:it.aiCode,expert:it.expertCode,
+            reason:ta?ta.value:""};
+  });
+  var allV = Object.values(_lotRes).flat();
+  var acc  = _items.length ? Math.round((1-_corrections.length/_items.length)*100) : 100;
+  var sess = {
+    id:Date.now(), num:SESSIONS.length+1,
+    user:(CU||{}).u||"unknown", userName:(CU||{}).name||"unknown",
+    date:new Date().toLocaleDateString("en-IN"), ts:new Date().toISOString(),
+    ..._meta,
+    totalItems:_items.length, totalVehicles:allV.length,
+    hydItems:_items.filter(x=>x.isHYD).length,
+    aiAccuracy:acc, corrections:_corrections.length,
+    annotation:document.getElementById("fb-txt").value,
+    clusterWT:+document.getElementById("fb-cwt").value||35,
+    clusterL: +document.getElementById("fb-cl").value||12,
+    correctionDetail:_corrections,
+    items:_items.map(it=>({pkg:it.pkg,desc:it.desc,lot:it.lot,L:it.L,W:it.W,
+                           H:it.H,WT:it.WT,aiCode:it.aiCode,
+                           expertCode:it.expertCode||it.aiCode,
+                           corrected:!!it.corrected})),
+    vehiclePlan:allV.map(v=>({code:v.code,items:v.items.length,totalWT:v.totalWT})),
+  };
+  SESSIONS.push(sess); saveS(); updateChips();
+  msg("fb-msg","ok","Session #"+sess.num+" saved &nbsp;&middot;&nbsp; AI accuracy: "+acc+
+      "% &nbsp;&middot;&nbsp; "+_corrections.length+" correction(s)");
+  setTimeout(()=>nav(document.querySelector("[data-p=sessions]"),"sessions"), 1400);
+}
+function saveSession(){
+  if(!_items.length){ alert("Run a vehicle plan first."); return; }
+  var allV = Object.values(_lotRes).flat();
+  var sess = {
+    id:Date.now(), num:SESSIONS.length+1,
+    user:(CU||{}).u||"unknown", userName:(CU||{}).name||"unknown",
+    date:new Date().toLocaleDateString("en-IN"), ts:new Date().toISOString(),
+    ..._meta, totalItems:_items.length, totalVehicles:allV.length,
+    hydItems:_items.filter(x=>x.isHYD).length,
+    aiAccuracy:null, corrections:0, annotation:"",
+    items:_items.map(it=>({pkg:it.pkg,desc:it.desc,lot:it.lot,L:it.L,W:it.W,
+                           H:it.H,WT:it.WT,aiCode:it.aiCode,
+                           expertCode:it.expertCode||it.aiCode})),
+    vehiclePlan:allV.map(v=>({code:v.code,items:v.items.length,totalWT:v.totalWT})),
+  };
+  SESSIONS.push(sess); saveS(); updateChips();
+  alert("Session #"+sess.num+" saved.");
+}
+
+// ═══════════════════════════════════════════════
+//  SESSIONS
+// ═══════════════════════════════════════════════
+function renderSess(){
+  var q=(document.getElementById("sess-q")||{}).value||"";
+  var fl=SESSIONS.filter(s=>!q||[s.client,s.ref,s.userName,s.origin,s.dest]
+    .join(" ").toLowerCase().includes(q.toLowerCase()));
+  if(!fl.length){
+    document.getElementById("sess-tbl").innerHTML =
+      `<div style="padding:18px;text-align:center;color:var(--grey);font-size:12.5px">
+        ${SESSIONS.length?"No results.":"No sessions saved yet."}</div>`;
+    return;
+  }
+  var h=`<div class="tw"><table><thead>
+    <tr><th>#</th><th>User</th><th>Client</th><th>Reference</th>
+      <th>Items</th><th>Vehicles</th><th>HYD</th>
+      <th>AI Acc.</th><th>Status</th><th>Date</th></tr>
+    </thead><tbody>`;
+  fl.slice().reverse().forEach(s=>{
+    var stat = s.aiAccuracy!==null ? (s.corrections>0?"gap":"reviewed") : "pending";
+    var dot  = {gap:"sd-g",reviewed:"sd-r",pending:"sd-p"}[stat];
+    var sl   = {gap:"Gap found",reviewed:"Reviewed",pending:"Pending"}[stat];
+    h+=`<tr>
+      <td>${s.num}</td>
+      <td>${s.userName||s.user}</td>
+      <td>${s.client||"—"}</td>
+      <td class="mono">${s.ref||"—"}</td>
+      <td>${s.totalItems}</td>
+      <td>${s.totalVehicles}</td>
+      <td>${s.hydItems}</td>
+      <td>${s.aiAccuracy!==null
+        ?`<span class="badge ${s.aiAccuracy>=95?"b-ok":s.aiAccuracy>=80?"b-warn":"b-odc"}">${s.aiAccuracy}%</span>`
+        :"<span class='badge b-warn'>Pending</span>"}</td>
+      <td><span class="std ${dot}"></span>${sl}</td>
+      <td>${s.date}</td>
+    </tr>`;
+  });
+  h += "</tbody></table></div>";
+  document.getElementById("sess-tbl").innerHTML = h;
+}
+function exportAllSess(){
+  var b=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),sessions:SESSIONS},null,2)],
+                {type:"application/json"});
+  var u=URL.createObjectURL(b);
+  var a=document.createElement("a");
+  a.href=u; a.download="Procam_UAT_Sessions_"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(u);
+}
+
+// ═══════════════════════════════════════════════
+//  REPORT
+// ═══════════════════════════════════════════════
+function renderReport(){
+  if(!SESSIONS.length){
+    document.getElementById("report-body").innerHTML =
+      `<div class="al al-i"><span>&#8505;</span><span>No sessions yet.</span></div>`;
+    return;
+  }
+  var wA  = SESSIONS.filter(s=>s.aiAccuracy!==null);
+  var avgA= wA.length ? Math.round(wA.reduce((s,x)=>s+x.aiAccuracy,0)/wA.length) : 0;
+  var totC= SESSIONS.reduce((s,x)=>s+(x.corrections||0),0);
+  var tc  = {}; SESSIONS.forEach(s=>(s.vehiclePlan||[]).forEach(v=>{ tc[v.code]=(tc[v.code]||0)+1; }));
+
+  var h=`<div class="sum">
+    <div class="sbi"><div class="sl">Sessions</div><div class="sv">${SESSIONS.length}</div></div>
+    <div class="sdv"></div>
+    <div class="sbi"><div class="sl">Avg AI Accuracy</div>
+      <div class="sv">${wA.length?avgA+"%":"—"}</div></div>
+    <div class="sdv"></div>
+    <div class="sbi"><div class="sl">Total Corrections</div><div class="sv">${totC}</div></div>
+    <div class="sdv"></div>
+    <div class="sbi"><div class="sl">Training Progress</div>
+      <div class="sv">${SESSIONS.length}/20</div></div>
+  </div>`;
+
+  h+=`<div class="card card-r"><div class="ct">Vehicle Demand (all sessions)</div>
+    <div class="ts">
+      <div class="ts-r ts-h"><div>Type</div><div></div>
+        <div class="tr">Vehicles</div><div class="tr">Avg/session</div><div class="tr">Share</div></div>`;
+  var gT=Object.values(tc).reduce((s,v)=>s+v,0);
+  Object.keys(tc).sort().forEach(code=>{
+    var vm=VM.find(v=>v.code===code)||VM[3], cnt=tc[code], shr=Math.round(cnt/gT*100);
+    h+=`<div class="ts-r">
+      <div><span class="badge ${vm.cls}">${code}</span></div>
+      <div style="font-size:12px;color:var(--grey)">${vm.name}</div>
+      <div class="tr">${cnt}</div>
+      <div class="tr">${(cnt/SESSIONS.length).toFixed(1)}</div>
+      <div class="tr">${shr}%</div>
+    </div>`;
+  });
+  h+=`</div></div>`;
+
+  var allC = SESSIONS.flatMap(s=>s.correctionDetail||[]);
+  if(allC.length){
+    var pats={}; allC.forEach(c=>{ var k=c.ai+"→"+c.expert; pats[k]=(pats[k]||0)+1; });
+    var srt=Object.entries(pats).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    h+=`<div class="card card-r"><div class="ct">Correction Patterns (training signals)</div>
+      <div class="tw"><table><thead>
+        <tr><th>AI Assigned</th><th>Expert Corrected To</th><th>Count</th><th>Signal</th></tr>
+      </thead><tbody>`;
+    srt.forEach(([k,n])=>{
+      var [a,e]=k.split("→");
+      h+=`<tr>
+        <td><span class="badge ${bc(a)}">${a}</span></td>
+        <td><span class="badge ${bc(e)}">${e}</span></td>
+        <td>${n}</td>
+        <td style="font-size:11.5px;color:var(--grey)">
+          ${n>=5?"&#9888; Threshold adjustment needed":n>=3?"Pattern emerging":"Isolated case"}
+        </td>
+      </tr>`;
+    });
+    h+="</tbody></table></div></div>";
+  }
+  document.getElementById("report-body").innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════
+//  ADMIN — USERS
+// ═══════════════════════════════════════════════
+function addUser(){
+  var u={
+    u:    document.getElementById("nu-u").value.trim(),
+    p:    document.getElementById("nu-p").value,
+    name: document.getElementById("nu-n").value.trim(),
+    role: document.getElementById("nu-r").value,
+    ini:  (document.getElementById("nu-n").value.trim()
+            .split(" ").map(w=>w[0]).join("")).toUpperCase().slice(0,2)
+  };
+  if(!u.u||!u.p||!u.name){ alert("Fill all fields."); return; }
+  if(USERS.find(x=>x.u===u.u)){ alert("Username already exists."); return; }
+  USERS.push(u); saveU(); renderUsrTable();
+  ["nu-u","nu-p","nu-n"].forEach(id=>document.getElementById(id).value="");
+}
+function delUser(i){
+  if(!confirm("Delete user?")) return;
+  USERS.splice(i,1); saveU(); renderUsrTable();
+}
+function renderUsrTable(){
+  var h="";
+  USERS.forEach((u,i)=>{
+    var cnt=SESSIONS.filter(s=>s.user===u.u).length;
+    h+=`<tr>
+      <td class="mono">${u.u}</td>
+      <td>${u.name}</td>
+      <td><span class="badge ${u.role==="admin"?"b-odc":u.role==="supervisor"?"b-warn":"b-ok"}">
+        ${u.role}</span></td>
+      <td>${cnt}</td>
+      <td><button class="btn btn-xs btn-ot" onclick="delUser(${i})">Delete</button></td>
+    </tr>`;
+  });
+  document.getElementById("usr-tbody").innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════
+//  PRINT & EXPORT
+// ═══════════════════════════════════════════════
+function doPrint(){
+  document.getElementById("ph").style.display   = "block";
+  document.getElementById("psig").style.display = "grid";
+  window.print();
+  setTimeout(()=>{
+    document.getElementById("ph").style.display   = "none";
+    document.getElementById("psig").style.display = "none";
+  }, 1500);
+}
+function doExcel(){
+  if(!_items.length){ alert("Run a plan first."); return; }
+  var wb=XLSX.utils.book_new(), allV=Object.values(_lotRes).flat();
+  var hydI=_items.filter(x=>x.isHYD), m=_meta;
+
+  // Sheet 1 — Summary
+  var sd=[
+    ["PROCAM LOGISTICS — LOAD PLAN"],
+    ["Client",m.client||"","Reference",m.ref||""],
+    ["Origin",m.origin||"","Destination",m.dest||""],
+    ["Date",m.date,"Prepared by",m.by],
+    [],["MECHANICAL TRAILER SUMMARY"],["Type","Vehicles","Cargo MT"]
+  ];
+  var tc={}; allV.forEach(v=>{ tc[v.code]=(tc[v.code]||0)+1; });
+  var gV=0,gWT=0;
+  Object.keys(tc).sort().forEach(code=>{
+    var cV=allV.filter(v=>v.code===code), cWT=cV.reduce((s,v)=>s+v.totalWT,0);
+    sd.push([code,cV.length,+cWT.toFixed(2)]); gV+=cV.length; gWT+=cWT;
+  });
+  sd.push(["TOTAL",gV,+gWT.toFixed(2)]);
+  if(hydI.length){ sd.push([]); sd.push(["HYDRAULIC AXLE","Items",hydI.length]); }
+  XLSX.utils.book_append_sheet(wb,"Summary",XLSX.utils.aoa_to_sheet(sd));
+
+  // Sheet 2 — Vehicle Plan
+  var pd=[["Lot","Veh No","Code","Type","Items","WT (MT)","Combined L (m)","Packages"]];
+  _lots.forEach(l=>(_lotRes[l]||[]).forEach((v,i)=>{
+    pd.push([l,i+1,v.code,v.vm.name,v.items.length,
+             +v.totalWT.toFixed(2),+v.totalL.toFixed(1),
+             v.items.map(x=>x.pkg).join(" | ")]);
+  }));
+  XLSX.utils.book_append_sheet(wb,"Vehicle Plan",XLSX.utils.aoa_to_sheet(pd));
+
+  // Sheet 3 — HYD Axle Plan
+  if(hydI.length){
+    var hd=[["#","Package","Description","Lot","L(m)","W(m)","H(m)","WT(MT)",
+             "Axle lines","Recommended","Alternative","HT Type",
+             "GVW(MT)","Permit","Fee/50km","Reason"]];
+    hydI.forEach((it,i)=>{
+      var ai=calcHYD(it.L,it.WT);
+      var c1=ai.combos[0]||{total:ai.raw,label:"—"};
+      var c2=ai.combos[1]||{label:"—"};
+      hd.push([i+1,it.pkg,it.desc,it.lot,+it.L.toFixed(2),+it.W.toFixed(2),
+               +it.H.toFixed(2),+it.WT.toFixed(2),c1.total,c1.label,c2.label,
+               htType(c1.total),htGVW(c1.total),htPm(c1.total),
+               "Rs."+htFee(c1.total)+"/50km",it.reasons[0]]);
+    });
+    XLSX.utils.book_append_sheet(wb,"HYD Axle Plan",XLSX.utils.aoa_to_sheet(hd));
+  }
+
+  // Sheet 4 — Item Detail
+  var id=[["Pkg","Description","Lot","L(m)","W(m)","H(m)","WT(MT)",
+           "AI Code","Expert Code","ODC","Reasons"]];
+  _items.forEach(it=>id.push([
+    it.pkg,it.desc,it.lot,+it.L.toFixed(3),+it.W.toFixed(3),
+    +it.H.toFixed(3),+it.WT.toFixed(3),it.aiCode,
+    it.expertCode||it.aiCode,it.odc?"Y":"N",(it.reasons||[]).join("; ")]));
+  XLSX.utils.book_append_sheet(wb,"Item Detail",XLSX.utils.aoa_to_sheet(id));
+
+  XLSX.writeFile(wb,"Procam_LoadPlan_"+(m.ref||"Export")+".xlsx");
+}
+function dlTemplate(){
+  var bin=atob(TMPL), bytes=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  var blob=new Blob([bytes],
+    {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  var u=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=u; a.download="Procam_PackingList_Template.xlsx";
+  a.click(); URL.revokeObjectURL(u);
+}
+
+// ═══════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════
+function updateChips(){
+  var n=SESSIONS.length;
+  document.getElementById("ch-sess").textContent=n;
+  document.getElementById("sb-sn").innerHTML=
+    n+` <span style="font-size:13px;color:rgba(255,255,255,.32)">/20</span>`;
+  document.getElementById("sb-tb").style.width=Math.min(100,n/20*100)+"%";
+}
+function msg(id,type,text){
+  var el=document.getElementById(id); if(!el) return;
+  var cls={info:"al-i",ok:"al-ok",warn:"al-w",danger:"al-d"}[type]||"al-i";
+  el.innerHTML=`<div class="al ${cls}">
+    <span>${{info:"&#8505;",ok:"&#10003;",warn:"&#9888;",danger:"&#9888;"}[type]}</span>
+    <span>${text}</span></div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+updateChips();
+setMode("single");
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: procam-load-planner
+    runtime: node
+    plan: starter          # required for a persistent disk (free plan has no disk)
+    buildCommand: ""        # zero dependencies — nothing to install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATA_DIR
+        value: /data
+    disk:
+      name: procam-data    # persistent disk — survives every redeploy & restart
+      mountPath: /data
+      sizeGB: 1

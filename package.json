@@ -1,0 +1,12 @@
+{
+  "name": "procam-load-planner",
+  "version": "1.0.0",
+  "description": "Procam Load Planning Platform — backend + SQLite persistence on a persistent disk",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
